@@ -1,133 +1,89 @@
-🎯 Objetivo
-O objetivo deste trabalho é compreender e demonstrar na prática o funcionamento dos dois conceitos importantes no protocolo MQTT:
-1. Last Will and Testament (LWT) 
-2. Retain Flag
+MQTT: Last Will and Testament (LWT) e Retain Flag
+Last Will and Testament (LWT)
 
-Além disso, o trabalho se concentrará em quando usar cada um e os impactos no sistema IoT real.
+Definição
 
----
+O Last Will and Testament (LWT) é um recurso do protocolo MQTT que permite ao cliente definir previamente uma mensagem “de emergência” no momento em que estabelece conexão com o broker.
 
-🔎 Explicações
+Essa mensagem fica registrada no broker e só será publicada automaticamente caso a conexão do cliente seja interrompida de forma inesperada, como em situações de falha de energia, perda de internet ou travamento do dispositivo.
 
-1. Last Will and Testament (LWT)
+Na prática, o LWT funciona como um “aviso automático de falha”, enviado sem depender do próprio cliente.
 
-O que é?  
-O Last Will and Testament (LWT) é uma funcionalidade do MQTT que permite ao cliente registrar uma mensagem que será enviada automaticamente pelo broker caso o cliente desconecte de forma inesperada. Essa mensagem de "testamento" é configurada pelo cliente no momento de sua conexão, e se o cliente perder a conexão sem desconectar corretamente (ou seja, se ele ficar offline de forma inesperada), o broker envia essa mensagem em nome do cliente para o tópico especificado.
+Situações de uso
 
-Quando usar?  
-- Usar LWT quando precisar de um mecanismo para notificar outros dispositivos ou serviços sobre a desconexão inesperada de um cliente.
-- Pode ser útil em sistemas críticos, onde é importante saber quando um dispositivo falha ou perde a conexão.
+O uso do LWT é essencial quando o sistema precisa saber se um dispositivo está ativo ou não. Alguns exemplos comuns incluem:
 
-Exemplo de uso em IoT:
-- Em um sistema de monitoramento remoto de dispositivos, o LWT pode ser usado para notificar se um dispositivo IoT como um sensor de temperatura ou dispositivo de segurança perde a conexão, permitindo a equipe técnica saber que o dispositivo precisa de atenção.
+Monitoramento de sensores em tempo real
+Equipamentos industriais conectados (Indústria 4.0)
+Sistemas de automação residencial
+Plataformas de telemetria e rastreamento
+Qualquer aplicação crítica onde a indisponibilidade precisa ser detectada rapidamente
 
-Impactos no Sistema IoT Real:  
-- Segurança e monitoramento: O LWT permite uma comunicação mais robusta e garante que as falhas de comunicação não passem despercebidas.
-- Desempenho: A configuração de LWT pode aumentar a carga no broker MQTT, pois ele precisa manter o estado de conexão de cada cliente e enviar mensagens de "last will" quando apropriado. No entanto, o impacto geralmente é mínimo para sistemas com baixo número de dispositivos.
+Impacto em sistemas IoT
 
-2. Retain Flag
+Benefícios
+Permite identificar falhas de forma automática e rápida
+Aumenta a confiabilidade da comunicação entre dispositivos
+Possibilita reações automáticas, como envio de alertas ou ativação de sistemas de backup
+Reduz o tempo de detecção de problemas
 
-O que é?  
-O Retain Flag (ou flag de retenção) é uma funcionalidade do MQTT que permite que uma mensagem publicada em um tópico seja retida pelo broker para que, quando um novo cliente se inscrever nesse tópico, ele receba a última mensagem publicada, mesmo que essa mensagem tenha sido publicada antes da inscrição do cliente.
+Pontos de atenção
+O LWT não é acionado se o cliente se desconectar corretamente
+Requer configuração no momento da conexão (não pode ser alterado depois)
+Depende da estabilidade da conexão com o broker para funcionar corretamente
+Pode gerar falsas interpretações se houver quedas temporárias de rede
 
-Quando usar?  
-- Usar Retain Flag quando for necessário garantir que novos clientes recebam o último estado de um tópico imediatamente após se inscreverem.
-- Ideal para tópicos que representam estados que não mudam com frequência, como o status de um dispositivo (ligado/desligado), níveis de bateria ou dados de configuração.
 
-Exemplo de uso em IoT:
-- Em um sistema de automação residencial, você pode usar o Retain Flag para garantir que um dispositivo que acabou de se conectar ao broker MQTT saiba o estado atual de uma luz (se ela está ligada ou desligada), sem ter que esperar por uma nova mensagem.
+Retain Flag
+Definição:
 
-Impactos no Sistema IoT Real:  
-- Eficiência de comunicação: O Retain Flag economiza tempo, pois novos clientes não precisam esperar por uma nova atualização para saber o estado atual de um dispositivo ou serviço.
-- Armazenamento no broker: Pode aumentar o uso de memória e armazenamento do broker, pois ele mantém a última mensagem publicada para cada tópico com o Retain Flag ativado.
-- Consistência dos dados: Pode ser uma vantagem em sistemas onde o estado atual dos dispositivos é crucial, mas, em sistemas de tempo real que precisam de dados frescos, o Retain Flag pode ser indesejável.
+O Retain Flag é uma propriedade associada às mensagens MQTT que indica ao broker que ele deve armazenar a última mensagem publicada em um determinado tópico.
 
----
+Dessa forma, sempre que um novo cliente se inscrever nesse tópico, ele receberá imediatamente essa última mensagem armazenada, mesmo que ela tenha sido enviada anteriormente.
 
-🧑‍💻 Código de Demonstração
+Isso permite que novos dispositivos tenham acesso ao estado atual do sistema sem precisar aguardar uma nova publicação.
 
-Exemplo com Last Will and Testament (LWT):
+Situações de uso
 
-Aqui está um exemplo simples de código em Python utilizando a biblioteca paho-mqtt para demonstrar o uso do LWT:
+O Retain Flag é muito útil em cenários onde o estado atual precisa estar sempre disponível:
 
-```python
-import paho.mqtt.client as mqtt
+Última leitura de sensores (temperatura, pressão, umidade)
+Estado de dispositivos (ligado/desligado)
+Informações de configuração do sistema
+Dados que não mudam com frequência, mas precisam ser conhecidos imediatamente
+Impacto em sistemas IoT
+Benefícios
+Novos clientes recebem dados instantaneamente ao se conectar
+Evita atrasos causados pela espera de novas mensagens
+Facilita a sincronização entre dispositivos
+Ideal para sistemas baseados em estado (stateful)
+Pontos de atenção
+Apenas uma única mensagem é mantida por tópico
+Pode ocorrer uso de dados desatualizados se não houver atualizações frequentes
+Pode causar inconsistência se o estado real não for atualizado corretamente
+Necessita de cuidado no gerenciamento dos tópicos
 
-# Definindo as variáveis
-broker = "broker.hivemq.com"
-port = 1883
-topic = "sensor/status"
-lwt_message = "Dispositivo desconectado inesperadamente!"
+Comparação entre LWT e Retain Flag
 
-# Função chamada quando o cliente conecta
-def on_connect(client, userdata, flags, rc):
-    print("Conectado com código: " + str(rc))
-    client.subscribe("sensor/status")  # Se inscreve no tópico de status
+Embora ambos sejam recursos importantes do MQTT, eles possuem finalidades diferentes:
 
-# Função chamada quando uma mensagem é recebida
-def on_message(client, userdata, msg):
-    print(f"Mensagem recebida no tópico {msg.topic}: {msg.payload.decode()}")
+LWT: voltado para detectar falhas inesperadas de conexão
+Retain Flag: utilizado para manter e distribuir o último estado conhecido
 
-# Criando o cliente MQTT e configurando as opções
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
+Enquanto o LWT atua em situações de erro, o Retain atua no armazenamento de estado.
 
-# Configurando o Last Will and Testament (LWT)
-client.will_set(topic, lwt_message, qos=1, retain=True)
+Uso combinado em sistemas reais
 
-# Conectando ao broker
-client.connect(broker, port, 60)
+Em aplicações IoT reais, é bastante comum utilizar os dois recursos em conjunto para garantir maior robustez.
 
-# Iniciando o loop do cliente MQTT
-client.loop_start()
-```
+Um padrão bastante utilizado é:
 
-Exemplo com Retain Flag:
+O dispositivo publica "online" com Retain ativado ao se conectar
+O LWT é configurado para publicar "offline" (também com Retain) caso haja falha
 
-Agora, vamos demonstrar o uso do Retain Flag com o código abaixo:
+Dessa forma:
 
-```python
-import paho.mqtt.client as mqtt
+Qualquer cliente que se conectar saberá imediatamente o estado atual
+O sistema consegue detectar automaticamente quando um dispositivo sai do ar
 
-# Definindo as variáveis
-broker = "broker.hivemq.com"
-port = 1883
-topic = "sensor/status"
-message = "Status do sensor: Ativo"
-
-# Função chamada quando o cliente conecta
-def on_connect(client, userdata, flags, rc):
-    print("Conectado com código: " + str(rc))
-    client.subscribe(topic)  # Se inscreve no tópico de status
-
-# Função chamada quando uma mensagem é recebida
-def on_message(client, userdata, msg):
-    print(f"Mensagem recebida no tópico {msg.topic}: {msg.payload.decode()}")
-
-# Criando o cliente MQTT e configurando as opções
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
-
-# Conectando ao broker
-client.connect(broker, port, 60)
-
-# Publicando uma mensagem com o Retain Flag
-client.publish(topic, message, qos=1, retain=True)
-
-# Iniciando o loop do cliente MQTT
-client.loop_start()
-```
-
----
-
-📄 Conclusão e Impactos
-
-**Last Will and Testament (LWT):**  
-- Quando usar: Para notificar falhas de dispositivos em sistemas críticos.
-- Impactos: Facilita a detecção de falhas inesperadas, mas pode aumentar a carga no broker e na rede.
-
-**Retain Flag:**  
-- Quando usar: Para garantir que os novos clientes recebam a última mensagem publicada sobre o estado de um tópico.
-- Impactos: Aumenta a eficiência e reduz a sobrecarga de comunicação, mas pode aumentar o uso de armazenamento no broker e não é recomendado em sistemas com dados que precisam ser sempre atualizados.
+Esse tipo de abordagem melhora significativamente a confiabilidade e a consistência das informações em sistemas distribuídos.
