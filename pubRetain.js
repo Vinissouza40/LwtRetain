@@ -3,12 +3,16 @@ import mqtt from "mqtt";
 const client = mqtt.connect("mqtt://localhost:1883");
 
 client.on("connect", () => {
-  console.log("PUB QoS2: conectado");
+  console.log("PUB RETAIN: conectado");
+
   let i = 0;
 
   const t = setInterval(() => {
-    client.publish("aula/qos", `msg ${i} (QoS2)`, { qos: 2 });
-    console.log("PUB QoS2 enviou:", i);
+    const mensagem = `msg ${i} (QoS0 - retain)`;
+
+    client.publish("aula/retain", mensagem, { qos: 0, retain: true });
+
+    console.log("PUB RETAIN enviou:", mensagem);
     i++;
 
     if (i === 10) {
